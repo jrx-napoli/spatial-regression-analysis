@@ -4,12 +4,12 @@ import time
 import numpy as np
 from sklearn.metrics import mean_squared_error
 from spreg import OLS, GM_Error, ML_Error, GM_Lag, ML_Lag, GM_Error_Het, GM_Error_Hom, ML_Lag_Regimes, OLS_Regimes, \
-    TSLS_Regimes, ML_Error_Regimes, GM_Lag_Regimes, GM_Error_Regimes, GM_Error_Het_Regimes, GM_Error_Hom_Regimes, \
-    sur_dictxy
+    TSLS_Regimes, ML_Error_Regimes, GM_Lag_Regimes, GM_Error_Regimes, GM_Error_Het_Regimes, GM_Error_Hom_Regimes
 
 
 class SpatialRegressionComparison:
-    def __init__(self, x, y, w, y_name, x_names, w_name, dataset, dataset_name, q=None, y_end=None, regimes=None, regimes_name=None):
+    def __init__(self, x, y, w, y_name, x_names, w_name, dataset, dataset_name, q=None, y_end=None, regimes=None,
+                 regimes_name=None):
         self.X = x
         self.y = y
         self.weights = w
@@ -29,7 +29,8 @@ class SpatialRegressionComparison:
 
     def run_model(self, model_name, model_class, *args):
         start_time = time.time()
-        model = model_class(self.y, self.X, *args, name_y=self.y_name, name_x=self.x_names, name_w=self.w_name, name_ds=self.dataset_name)
+        model = model_class(self.y, self.X, *args, name_y=self.y_name, name_x=self.x_names, name_w=self.w_name,
+                            name_ds=self.dataset_name)
         end_time = time.time()
 
         self.models[model_name] = model
@@ -47,7 +48,8 @@ class SpatialRegressionComparison:
 
         # Regimes models
         self.run_model('OSL_Regimes', OLS_Regimes, self.regimes)
-        self.run_model('TSLS_Regimes', TSLS_Regimes, self.y_end, self.q, self.regimes, self.weights)
+        if self.dataset_name != "SYNTHETIC_DATASET":
+            self.run_model('TSLS_Regimes', TSLS_Regimes, self.y_end, self.q, self.regimes, self.weights)
         self.run_model('ML_Lag_Regimes', ML_Lag_Regimes, self.regimes, self.weights)
         self.run_model('ML_Error_Regimes', ML_Error_Regimes, self.regimes, self.weights)
         self.run_model('GM_Lag_Regimes', GM_Lag_Regimes, self.regimes, None, None, self.weights)
@@ -55,24 +57,33 @@ class SpatialRegressionComparison:
         self.run_model('GM_Error_Het_Regimes', GM_Error_Het_Regimes, self.regimes, self.weights)
         self.run_model('GM_Error_Hom_Regimes', GM_Error_Hom_Regimes, self.regimes, self.weights)
 
-        # Seemingly-Unrelated Regressions
-        bigy, bigX, bigyvars, bigXvars = self._setup_sur()
-
-    def _setup_sur(self):
-        bigy, bigX, bigyvars, bigXvars = sur_dictxy(self.dataset, [self.y_name], self.x_names)
-        return bigy, bigX, bigyvars, bigXvars
-
     def compare_models(self):
         mse_results = {}
         for name, model in self.models.items():
-
-            if not os.path.exists(self.results_path):
-                os.makedirs(self.results_path)
-            f = open(f"{self.results_path}/{name}.txt", "w")
-            f.write(model.summary)
+            f_model = open(f"{self.results_path}/{name}.txt", "w")
+            f_model.write(model.summary)
 
             predictions = model.predy
             mse = mean_squared_error(self.y, predictions)
             mse_results[name] = np.round(mse, 3)
 
-        return mse_results, self.execution_times
+        if not os.path.exists(self.results_path):
+            os.makedirs(self.results_path)
+
+        f_comp_error = open(f"{self.results_path}/comparison_error_{self.dataset_name}.txt", "w")
+        f_comp_error.write(F"{self.dataset_name}: MEAN SQUARED ERROR COMPARISON\n")
+        f_comp_error.write(F"--------------------------------------------------\n\n")
+
+        f_comp_time = open(f"{self.results_path}/comparison_time_{self.dataset_name}.txt", "w")
+        f_comp_time.write(F"{self.dataset_name}: EXECUTION TIME COMPARISON [s]\n")
+        f_comp_time.write(F"--------------------------------------------------\n\n")
+
+        mse_results = dict(sorted(mse_results.items(), key=lambda item: item[1]))
+        for name, result in mse_results.items():
+            f_comp_error.write(f"{name}: {np.round(result, 3)}\n")
+
+        self.execution_times = dict(sorted(self.execution_times.items(), key=lambda item: item[1]))
+        for name, result in self.execution_times.items():
+            f_comp_time.write(f"{name}: {self.execution_times[name]}\n")
+
+        return mse_results

@@ -1,6 +1,7 @@
 import os
 import time
 
+import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.metrics import mean_squared_error
 from spreg import OLS, GM_Error, ML_Error, GM_Lag, ML_Lag, GM_Error_Het, GM_Error_Hom, ML_Lag_Regimes, OLS_Regimes, \
@@ -24,6 +25,7 @@ class SpatialRegressionComparison:
         self.dataset_name = dataset_name
 
         self.models = {}
+        self.mse_results = {}
         self.execution_times = {}
         self.results_path = "results"
 
@@ -58,6 +60,9 @@ class SpatialRegressionComparison:
         self.run_model('GM_Error_Hom_Regimes', GM_Error_Hom_Regimes, self.regimes, self.weights)
 
     def compare_models(self):
+        if not os.path.exists(self.results_path):
+            os.makedirs(self.results_path)
+
         mse_results = {}
         for name, model in self.models.items():
             f_model = open(f"{self.results_path}/{name}.txt", "w")
@@ -66,10 +71,13 @@ class SpatialRegressionComparison:
             predictions = model.predy
             mse = mean_squared_error(self.y, predictions)
             mse_results[name] = np.round(mse, 3)
+        self.mse_results = mse_results
 
-        if not os.path.exists(self.results_path):
-            os.makedirs(self.results_path)
+        self._create_reports()
+        self._plot_execution_times()
+        self._plot_mse_results()
 
+    def _create_reports(self):
         f_comp_error = open(f"{self.results_path}/comparison_error_{self.dataset_name}.txt", "w")
         f_comp_error.write(F"{self.dataset_name}: MEAN SQUARED ERROR COMPARISON\n")
         f_comp_error.write(F"--------------------------------------------------\n\n")
@@ -78,12 +86,34 @@ class SpatialRegressionComparison:
         f_comp_time.write(F"{self.dataset_name}: EXECUTION TIME COMPARISON [s]\n")
         f_comp_time.write(F"--------------------------------------------------\n\n")
 
-        mse_results = dict(sorted(mse_results.items(), key=lambda item: item[1]))
-        for name, result in mse_results.items():
+        self.mse_results = dict(sorted(self.mse_results.items(), key=lambda item: item[1]))
+        for name, result in self.mse_results.items():
             f_comp_error.write(f"{name}: {np.round(result, 3)}\n")
 
         self.execution_times = dict(sorted(self.execution_times.items(), key=lambda item: item[1]))
         for name, result in self.execution_times.items():
             f_comp_time.write(f"{name}: {self.execution_times[name]}\n")
 
-        return mse_results
+    def _plot_execution_times(self):
+        plt.figure(figsize=(10, 6))
+        plt.bar(self.execution_times.keys(), self.execution_times.values(), color='skyblue')
+        plt.xlabel('Model')
+        plt.ylabel('Execution Time (seconds)')
+        plt.title('Execution Time of Spatial Regression Models')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+
+        plt.savefig(f"{self.results_path}/execution_times.png")
+        plt.close()
+
+    def _plot_mse_results(self):
+        plt.figure(figsize=(10, 6))
+        plt.bar(self.mse_results.keys(), self.mse_results.values(), color='skyblue')
+        plt.xlabel('Model')
+        plt.ylabel('MSE')
+        plt.title('Mean Squared Error of Spatial Regression Models')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+
+        plt.savefig(f"{self.results_path}/mse_results.png")
+        plt.close()

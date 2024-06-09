@@ -2,11 +2,11 @@ import geopandas as gpd
 import libpysal
 import numpy as np
 from libpysal.examples import load_example
-from libpysal.weights import Queen, Rook
+from libpysal.weights import Queen
 
 
 def generate_synthetic_data(data_size):
-    np.random.seed(12345)
+    np.random.seed(42)
     x1 = np.random.rand(data_size, 1)
     x2 = np.random.rand(data_size, 1)
     x = np.hstack([x1, x2])
@@ -35,7 +35,10 @@ def baltimore():
     w = Queen.from_dataframe(df)
     w.transform = 'r'
 
-    return y, y_name, x, x_names, w, w_name, db, ds_name
+    regimes_name = "CITCOU"
+    regimes = db.by_col(regimes_name)
+
+    return y, y_name, x, x_names, w, w_name, regimes, regimes_name, db, ds_name
 
 
 def columbus():

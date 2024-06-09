@@ -169,7 +169,7 @@ class SpatialRegressionComparison:
         Plots a bar chart of mean squared errors.
         """
         plt.figure(figsize=(10, 6))
-        plt.bar(self.mse_results.keys(), self.mse_results.values(), color='skyblue')
+        plt.bar(self.mse_results.keys(), self.mse_results.values(), color='thistle')
         plt.xlabel('Model')
         plt.ylabel('MSE')
         plt.title('Mean Squared Error of Spatial Regression Models')

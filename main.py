@@ -2,7 +2,7 @@ import sys
 
 import datasets
 from options import get_args
-from experiments import SpatialRegressionComparison
+from spatial_regression_comparison import SpatialRegressionComparison
 
 if __name__ == "__main__":
     args = get_args(sys.argv[1:])
